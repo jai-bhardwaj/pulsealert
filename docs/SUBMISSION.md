@@ -1,6 +1,9 @@
 # Submission — copy/paste answers for cnfl.io/devdaywinner
 
-> Adapt to the actual form fields. Keep the impact paragraph first; judges skim.
+> Form: *Developer Day - Submit Your Confluent App* (Google Forms). No video is required.
+> Fields: location, first/last name, Confluent Cloud email, job title, company (all required),
+> GitHub repo link, app description (required), **screenshot link (required, marked "[NO AI Usage Allowed]" —
+> take and upload this one yourself)**, connectors used, and your schema.
 
 ## Project name
 PulseAlert — real-time price alerts anyone can set in 10 seconds
@@ -47,6 +50,25 @@ Web Push/email through an HTTP Sink connector on `alerts`; compacted rules topic
 pattern alerts; Flink AI anomaly scoring; more feeds via additional connectors.
 
 ## Links
-- GitHub: <repo URL>
-- Demo video (90s): <YouTube/Loom URL>
-- Screenshots: connector Running, 3 Flink statements Running, Stream Lineage graph, Schemas page, app with fired alert
+- GitHub: https://github.com/jai-bhardwaj/pulsealert
+- Screenshot (required field): Confluent Cloud ▸ environment `pulsealert` ▸ **Stream Lineage** on `alerts` →
+  upload to Google Drive / imgbb and paste the link. Take this yourself — that question is marked "[NO AI Usage Allowed]".
+
+## Answer for "Which Confluent connector(s) are you using?"
+HTTP Source V2 (fully managed) — polls the Coinbase spot-price API for BTC/ETH/SOL every 10s into `crypto.spot.raw`,
+output format JSON_SR so every record is governed by Schema Registry.
+
+## Answer for "Paste here your schema"
+`alert_rules-value` — the JSON Schema the app registers when a user creates a rule (Flink joins this topic live):
+
+```json
+{"$schema":"http://json-schema.org/draft-07/schema#","title":"AlertRule","type":"object",
+ "properties":{"rule_id":{"type":"string"},"user_id":{"type":"string"},"symbol":{"type":"string"},
+ "direction":{"type":"string","enum":["DROP","RISE"]},"threshold_pct":{"type":"number"},
+ "created_at":{"type":"string"}},
+ "required":["rule_id","user_id","symbol","direction","threshold_pct","created_at"],
+ "additionalProperties":false}
+```
+
+All five topics are registered: `crypto.spot.raw-value` (connector-inferred), `price_ticks-value`, `price_moves-value`,
+`alerts-value` (Flink-managed) and `alert_rules-value` (app-registered).
