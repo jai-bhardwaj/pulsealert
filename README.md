@@ -123,8 +123,9 @@ docs/DEMO_SCRIPT.md        90-second video shot list
 
 A poll-and-compare cron job re-reads history on every tick, can't scale to many users × many rules, and is late by its
 interval. Here the connector ingests once, Flink maintains the sliding windows incrementally and joins against rules as
-they arrive, and adding a user costs one small Kafka record. Latency from price move to notification is seconds, and the
-same pipeline serves 1 or 1,000,000 users.
+they arrive, and adding a user costs one small Kafka record. Price move to notification takes about 2–3 minutes end to
+end (Flink commits results exactly-once at checkpoints), and that stays the same whether the pipeline serves 1 or
+1,000,000 users.
 
 ## Roadmap
 

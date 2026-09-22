@@ -17,8 +17,9 @@ managing windowed state, and redeploying code every time a user changes a rule.
 
 PulseAlert shows how a data streaming platform turns that into a product feature in an afternoon:
 
-- **Customer experience:** move-to-notification latency is seconds, alerts are relative (% over a sliding window) rather
-  than static price lines, and there is no sign-up friction.
+- **Customer experience:** a move becomes a notification in about 2–3 minutes end to end (Flink commits results
+  exactly-once at checkpoints), alerts are relative (% over a sliding window) rather than static price lines, and there
+  is no sign-up friction.
 - **Time to market:** ingestion is a connector config, the entire analytic is ~40 lines of Flink SQL, and user rules
   are *data in a Kafka topic*, so adding a rule — or a million users — needs no redeploy.
 - **Extensible by configuration:** swapping Coinbase for a stock, FX or e-commerce price feed is a change to the
