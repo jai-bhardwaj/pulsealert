@@ -1,5 +1,5 @@
 {
-  "_comment": "Confluent Cloud fully-managed HTTP Source V2 connector. Easiest path: Cluster ▸ Connectors ▸ 'HTTP Source V2' and enter these values in the wizard. Or upload this file via 'Add connector ▸ Upload connector config file' after filling in the placeholders.",
+  "_comment": "Confluent Cloud fully-managed HTTP Source V2 connector. Easiest path: Cluster ▸ Connectors ▸ 'HTTP Source V2' — the wizard first asks for an OpenAPI spec (upload connectors/coinbase-openapi.yaml), then enter these values. See README step 2.",
   "name": "coinbase-spot-prices",
   "connector.class": "HttpSourceV2",
   "kafka.auth.mode": "KAFKA_API_KEY",
@@ -9,27 +9,23 @@
   "http.api.base.url": "https://api.coinbase.com",
   "auth.type": "none",
   "apis.num": "3",
-
   "api1.http.api.path": "/v2/prices/BTC-USD/spot",
   "api1.topics": "crypto.spot.raw",
   "api1.http.request.method": "GET",
   "api1.request.interval.ms": "10000",
   "api1.http.offset.mode": "SIMPLE_INCREMENTING",
   "api1.http.initial.offset": "0",
-
   "api2.http.api.path": "/v2/prices/ETH-USD/spot",
   "api2.topics": "crypto.spot.raw",
   "api2.http.request.method": "GET",
   "api2.request.interval.ms": "10000",
   "api2.http.offset.mode": "SIMPLE_INCREMENTING",
   "api2.http.initial.offset": "0",
-
   "api3.http.api.path": "/v2/prices/SOL-USD/spot",
   "api3.topics": "crypto.spot.raw",
   "api3.http.request.method": "GET",
   "api3.request.interval.ms": "10000",
   "api3.http.offset.mode": "SIMPLE_INCREMENTING",
   "api3.http.initial.offset": "0",
-
-  "tasks.max": "1"
+  "tasks.max": "3"
 }

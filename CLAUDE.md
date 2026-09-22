@@ -9,7 +9,7 @@ window → `alerts` interval-joined with `alert_rules`) → Next.js dashboard vi
 User rules are written *into Kafka* by the app (`POST /api/rules`). Read `README.md` for the full setup run sheet.
 
 ## Stack
-- Next.js 14 (App Router), TypeScript, React 18, plain CSS in `app/globals.css`
+- Next.js 16 (App Router, Turbopack), TypeScript 7, React 19, plain CSS in `app/globals.css`
 - `kafkajs` for Kafka; Schema Registry via plain REST (`lib/kafka.ts` handles the 5-byte JSON_SR wire format)
 - No ORM, no DB, no auth — state lives in Kafka topics and browser localStorage
 - Flink SQL runs in Confluent Cloud, not locally (`flink/pipeline.sql`)
@@ -39,7 +39,10 @@ npm run spike               # 90s simulated -3% BTC move to force an alert durin
 - Flink output tables MUST use `'value.format' = 'json-registry'` (default is Avro, which the app can't decode).
 - `data` is a reserved word in Flink SQL — always backtick it when reading `crypto.spot.raw`.
 - Streaming Flink can't `ORDER BY` a non-time column; don't add it to debug queries.
-- Kafka timestamps from Flink arrive as `"YYYY-MM-DD HH:mm:ss.SSSZ"` strings; `fmtTime` in `page.tsx` handles that.
+- Flink `json-registry` timestamps arrive as epoch-millis numbers; `fmtTime` in `page.tsx` handles numbers and strings.
+- HOP `window_start`/`window_end` are zone-less (shifted by the workspace time zone, e.g. +5:30 IST) — use `$rowtime` for real instants.
+- Tables with `DISTRIBUTED BY` need `'value.fields-include' = 'all'`, or the key columns (e.g. `symbol`) are missing from the value the app reads.
+- `FIRST_VALUE`/`LAST_VALUE` aren't supported in HOP windows; `price_moves` uses MIN/MAX over `'ts|price'` strings instead.
 - `alert_rules` is append-only; deleting a rule is client-side only (documented as roadmap).
 - `.env` is gitignored. Never commit credentials; never print secrets in logs.
 - Don't add dependencies unless something is broken. No UI libraries.
@@ -48,3 +51,13 @@ npm run spike               # 90s simulated -3% BTC move to force an alert durin
 1. If something fails, first check `.env` values and that the Flink statements show **Running** in Confluent.
 2. Prefer the smallest fix that unblocks the demo; note nicer solutions in README "Roadmap" instead of building them.
 3. Keep README/SUBMISSION accurate if behaviour changes — the judges read them.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

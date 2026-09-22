@@ -1,0 +1,57 @@
+openapi: 3.0.3
+info:
+  title: Coinbase spot prices (PulseAlert)
+  description: >
+    The three public Coinbase endpoints PulseAlert polls. Upload this file in the
+    HTTP Source V2 connector wizard (Details ▸ Add a file) — the wizard needs an
+    OpenAPI spec before it lets you pick paths.
+  version: "1.0"
+servers:
+  - url: https://api.coinbase.com
+paths:
+  /v2/prices/BTC-USD/spot:
+    get:
+      operationId: btcUsdSpot
+      responses:
+        "200":
+          description: BTC spot price in USD
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Spot"
+  /v2/prices/ETH-USD/spot:
+    get:
+      operationId: ethUsdSpot
+      responses:
+        "200":
+          description: ETH spot price in USD
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Spot"
+  /v2/prices/SOL-USD/spot:
+    get:
+      operationId: solUsdSpot
+      responses:
+        "200":
+          description: SOL spot price in USD
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Spot"
+components:
+  schemas:
+    Spot:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            amount:
+              type: string
+            base:
+              type: string
+            currency:
+              type: string
+          required: [amount, base, currency]
+      required: [data]

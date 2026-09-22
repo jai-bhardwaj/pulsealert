@@ -12,7 +12,7 @@ interface Move {
 }
 interface Alert {
   rule_id: string; user_id: string; symbol: string; direction: "DROP" | "RISE";
-  threshold_pct: number; pct_change: number; open_price: number; close_price: number; fired_at: string;
+  threshold_pct: number; pct_change: number; open_price: number; close_price: number; fired_at: string | number;
 }
 interface Rule { rule_id: string; symbol: string; direction: "DROP" | "RISE"; threshold_pct: number; created_at: string }
 
@@ -21,9 +21,9 @@ const ALERT_COOLDOWN_MS = 5 * 60 * 1000; // one notification per rule per window
 const fmtPrice = (n: number) =>
   n >= 1000 ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 const fmtPct = (n: number) => `${n > 0 ? "+" : ""}${n.toFixed(3)}%`;
-const fmtTime = (s: string) => {
-  const d = new Date(s.replace(" ", "T"));
-  return isNaN(d.getTime()) ? s : d.toLocaleTimeString();
+const fmtTime = (s: string | number) => {
+  const d = new Date(typeof s === "number" ? s : s.replace(" ", "T"));
+  return isNaN(d.getTime()) ? String(s) : d.toLocaleTimeString();
 };
 
 export default function Home() {

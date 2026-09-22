@@ -50,12 +50,15 @@ npm run setup:topics      # creates crypto.spot.raw and alert_rules
 Cluster ▸ Connectors ▸ search **HTTP Source V2** ▸ use the values in
 [`connectors/http-source-v2.json`](connectors/http-source-v2.json):
 
-- Kafka credentials: your cluster API key
-- Output record format: **JSON_SR**
-- HTTP API Base URL: `https://api.coinbase.com`, Auth type: none
-- Number of APIs: **3** — paths `/v2/prices/BTC-USD/spot`, `/v2/prices/ETH-USD/spot`, `/v2/prices/SOL-USD/spot`,
-  each with topic `crypto.spot.raw`, method GET, request interval `10000` ms, offset mode `SIMPLE_INCREMENTING`, initial offset `0`
-- Tasks: 1
+- Details: the wizard needs an OpenAPI spec first — *Add a file* ▸ upload
+  [`connectors/coinbase-openapi.yaml`](connectors/coinbase-openapi.yaml)
+- Kafka access: *My account* ▸ *Generate API key and download*
+- HTTP API Base URL: `https://api.coinbase.com`, Auth type: none (both prefilled from the spec)
+- Paths: tick all **3** — `/v2/prices/BTC-USD/spot`, `/v2/prices/ETH-USD/spot`, `/v2/prices/SOL-USD/spot`;
+  for each, turn off *Create a new topic* and pick `crypto.spot.raw`; under *Settings* set initial offset `0` and
+  request interval `10000` ms (the default is 60000)
+- Advanced configuration ▸ output record format: **JSON_SR**
+- Tasks: **3** (fixed — one per path; ≈ $1.08/hr, so pause the connector when you're not demoing)
 
 Wait for status **Running**, then open topic `crypto.spot.raw` ▸ Messages — you should see
 `{"data":{"amount":"...","base":"BTC","currency":"USD"}}` every ~10 s.
@@ -71,7 +74,7 @@ Run the statements in [`flink/pipeline.sql`](flink/pipeline.sql) **one at a time
 
 1. The sanity `SELECT` on `` `crypto.spot.raw` `` (stop it once rows appear).
 2. `CREATE TABLE price_ticks …` then `INSERT INTO price_ticks …` (leave running).
-3. `CREATE TABLE price_moves … AS SELECT …` (leave running — first rows appear after ~30 s).
+3. `CREATE TABLE price_moves … AS SELECT …` (leave running — first rows appear after ~1–2 min).
 4. `CREATE TABLE alerts … AS SELECT …` (leave running).
 
 Environment ▸ Flink ▸ *Flink statements* should now show 3 **Running** statements. Screenshot this.
@@ -82,14 +85,15 @@ Environment ▸ Flink ▸ *Flink statements* should now show 3 **Running** state
 npm run dev          # http://localhost:3000
 ```
 
-- Prices populate within ~10 s; 5-minute % change appears after ~30 s.
+- Prices populate within ~10 s; 5-minute % change appears after ~1–2 min.
 - Click **Enable browser notifications**.
 - Create a rule, e.g. *BTC drops 0.05 %* (use a tiny threshold so it fires during the demo).
 - Open topic `alert_rules` in Confluent — your rule is there, with its schema.
 - When a matching window closes, the alert shows in the feed **and** as a macOS/Windows notification.
 
 **Forcing an alert for the video:** `npm run spike` publishes 90 s of BTC ticks 3 % below market
-(clearly labelled *simulated flash crash*). Within ~30–60 s Flink emits the alert. Say on camera that it's a simulation.
+(clearly labelled *simulated flash crash*). Within ~1–3 min Flink emits the alert (Confluent Flink commits results at
+checkpoints, so each hop adds up to a minute) — cut the wait in the edit. Say on camera that it's a simulation.
 
 ### 5. Governance touches (5 min — these are cheap points)
 

@@ -22,6 +22,8 @@ FROM `crypto.spot.raw`;
 
 -- ----------------------------------------------------------------------------
 -- 1. Clean, typed price ticks (Stream Governance: JSON Schema registered by Flink)
+--    DISTRIBUTED BY puts `symbol` in the (Avro) Kafka key; 'value.fields-include'
+--    = 'all' keeps it in the JSON value too, which is all the app decodes.
 -- ----------------------------------------------------------------------------
 CREATE TABLE price_ticks (
   symbol STRING NOT NULL,
@@ -29,7 +31,8 @@ CREATE TABLE price_ticks (
   ts     TIMESTAMP_LTZ(3) NOT NULL
 ) DISTRIBUTED BY HASH(symbol) INTO 1 BUCKETS
 WITH (
-  'value.format' = 'json-registry'
+  'value.format' = 'json-registry',
+  'value.fields-include' = 'all'
 );
 
 INSERT INTO price_ticks
@@ -44,6 +47,8 @@ WHERE `data`.amount IS NOT NULL;
 -- ----------------------------------------------------------------------------
 -- 2. Sliding-window moves: every 30 seconds, look back 5 minutes per symbol.
 --    pct_change = (last price - first price) / first price * 100
+--    FIRST_VALUE/LAST_VALUE aren't supported in HOP windows, so the first/last
+--    price is taken via MIN/MAX over 'timestamp|price' strings.
 -- ----------------------------------------------------------------------------
 CREATE TABLE price_moves
 WITH (
@@ -53,15 +58,25 @@ SELECT
   symbol,
   window_start,
   window_end,
-  FIRST_VALUE(price)                                          AS open_price,
-  LAST_VALUE(price)                                           AS close_price,
-  MIN(price)                                                  AS low_price,
-  MAX(price)                                                  AS high_price,
-  (LAST_VALUE(price) - FIRST_VALUE(price)) / FIRST_VALUE(price) * 100 AS pct_change
-FROM TABLE(
-  HOP(TABLE price_ticks, DESCRIPTOR($rowtime), INTERVAL '30' SECOND, INTERVAL '5' MINUTE)
-)
-GROUP BY symbol, window_start, window_end;
+  open_price,
+  close_price,
+  low_price,
+  high_price,
+  (close_price - open_price) / open_price * 100 AS pct_change
+FROM (
+  SELECT
+    symbol,
+    window_start,
+    window_end,
+    CAST(SPLIT_INDEX(MIN(CONCAT(CAST(ts AS STRING), '|', CAST(price AS STRING))), '|', 1) AS DOUBLE) AS open_price,
+    CAST(SPLIT_INDEX(MAX(CONCAT(CAST(ts AS STRING), '|', CAST(price AS STRING))), '|', 1) AS DOUBLE) AS close_price,
+    MIN(price) AS low_price,
+    MAX(price) AS high_price
+  FROM TABLE(
+    HOP(TABLE price_ticks, DESCRIPTOR($rowtime), INTERVAL '30' SECOND, INTERVAL '5' MINUTE)
+  )
+  GROUP BY symbol, window_start, window_end
+);
 
 
 -- ----------------------------------------------------------------------------
@@ -83,11 +98,11 @@ SELECT
   m.pct_change,
   m.open_price,
   m.close_price,
-  m.window_end AS fired_at
+  m.`$rowtime` AS fired_at  -- not window_end: HOP bounds are zone-less (session time zone)
 FROM price_moves AS m
 JOIN alert_rules AS r
   ON m.symbol = r.symbol
- AND m.$rowtime BETWEEN r.$rowtime AND r.$rowtime + INTERVAL '30' DAY
+ AND m.`$rowtime` BETWEEN r.`$rowtime` AND r.`$rowtime` + INTERVAL '30' DAY
 WHERE (r.direction = 'DROP' AND m.pct_change <= -r.threshold_pct)
    OR (r.direction = 'RISE' AND m.pct_change >=  r.threshold_pct);
 

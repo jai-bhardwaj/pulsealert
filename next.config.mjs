@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: { serverComponentsExternalPackages: ["kafkajs"] },
+  serverExternalPackages: ["kafkajs"],
 };
 export default nextConfig;
